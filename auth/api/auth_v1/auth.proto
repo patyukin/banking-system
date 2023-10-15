@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package user_v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+option go_package = "github.com/patyukin/banking-system/auth/pkg/auth_v1;auth_v1";
+
+service AuthV1 {
+	rpc Auth(AuthRequest) returns (AuthResponse);
+}
+
+message AuthRequest {
+	string email = 1;
+	string password = 2;
+}
+
+message AuthResponse {
+	string accessToken = 1;
+	string refreshToken = 2;
+}
