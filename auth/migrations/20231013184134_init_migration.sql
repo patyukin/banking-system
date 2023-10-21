@@ -4,18 +4,18 @@ EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE roles
 (
-	id   BIGSERIAL PRIMARY KEY DEFAULT uuid_generate_v4(),
+	id   BIGSERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE users
 (
-	id            BIGSERIAL PRIMARY KEY DEFAULT uuid_generate_v4(),
+	id            BIGSERIAL PRIMARY KEY,
 	name          VARCHAR(255) NOT NULL,
 	email         VARCHAR(255) NOT NULL,
 	password_hash VARCHAR(255) NOT NULL,
-	created_at    TIMESTAMPTZ           DEFAULT CURRENT_TIMESTAMP,
-	updated_at    TIMESTAMPTZ           DEFAULT CURRENT_TIMESTAMP
+	created_at    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE users_roles
@@ -28,10 +28,10 @@ CREATE TABLE users_roles
 CREATE TABLE refresh_tokens
 (
 	id         SERIAL PRIMARY KEY,
-	token      UUID        DEFAULT uuid_generate_v4() NOT NULL UNIQUE,
-	user_id    BIGSERIAL REFERENCES users (id),
-	expired_at TIMESTAMPTZ DEFAULT NOT NULL,
-	created_at TIMESTAMPTZ DEFAULT DEFAULT CURRENT_TIMESTAMP
+	token      UUID        NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
+	user_id    BIGSERIAL   NOT NULL REFERENCES users (id),
+	expired_at TIMESTAMPTZ NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 

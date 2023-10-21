@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	authHttpHandler "github.com/patyukin/banking-system/auth/internal/api/http/auth"
@@ -92,7 +93,11 @@ func (a *App) initDeps(ctx context.Context) error {
 }
 
 func (a *App) initConfig(_ context.Context) error {
-	err := config.Load(".env")
+	var configPath string
+	flag.StringVar(&configPath, "config-path", "", "path to config file")
+	flag.Parse()
+
+	err := config.Load(configPath)
 	if err != nil {
 		return err
 	}
@@ -133,11 +138,11 @@ func (a *App) runGRPCServer() error {
 }
 
 func (a *App) initHTTPServer(_ context.Context) error {
-	addr := a.serviceProvider.GRPCConfig().Address()
+	addr := a.serviceProvider.HTTPConfig().Address()
 	log.Printf("HTTP server is running on %s", addr)
 
 	authHandler := authHttpHandler.New()
-	userHandler := userHttpHandler.New()
+	userHandler := userHttpHandler.New(a.serviceProvider.userService)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
