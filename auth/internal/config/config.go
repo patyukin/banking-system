@@ -20,3 +20,7 @@ type PGConfig interface {
 type GRPCConfig interface {
 	Address() string
 }
+
+type HTTPConfig interface {
+	Address() string
+}

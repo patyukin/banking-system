@@ -15,7 +15,7 @@ import (
 const (
 	tableName = "users"
 
-	uuidColumn      = "uuid"
+	idColumn        = "id"
 	nameColumn      = "name"
 	emailColumn     = "email"
 	passwordColumn  = "password"
@@ -27,41 +27,66 @@ type repo struct {
 	db db.Client
 }
 
+func (r *repo) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+	builder := sq.Select(idColumn, nameColumn, passwordColumn, emailColumn, createdAtColumn, updatedAtColumn).
+		PlaceholderFormat(sq.Dollar).
+		From(tableName).
+		Where(sq.Eq{emailColumn: email})
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	q := db.Query{
+		Name:     "user_repository.GetByEmail",
+		QueryRaw: query,
+	}
+
+	var user modelRepo.User
+	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&user.ID, &user.Info.Name, &user.Info.Email, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return converter.ToUserFromRepo(&user), nil
+}
+
 func NewRepository(db db.Client) repository.UserRepository {
 	return &repo{db: db}
 }
 
-func (r *repo) Create(ctx context.Context, info *model.UserInfo) (string, error) {
+func (r *repo) Create(ctx context.Context, user *model.User) (int64, error) {
 	builder := sq.Insert(tableName).
 		PlaceholderFormat(sq.Dollar).
-		Columns(nameColumn, emailColumn).
-		Values(info.Name, info.Email).
+		Columns(nameColumn, emailColumn, passwordColumn).
+		Values(user.Info.Name, user.Info.Email, user.Password).
 		Suffix("RETURNING id")
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	q := db.Query{
-		Name:     "note_repository.Create",
+		Name:     "user_repository.Create",
 		QueryRaw: query,
 	}
 
-	var uuid string
-	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&uuid)
+	var id int64
+	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&id)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
-	return uuid, nil
+	return id, nil
 }
 
-func (r *repo) Get(ctx context.Context, uuid string) (*model.User, error) {
-	builder := sq.Select(uuidColumn, nameColumn, emailColumn, createdAtColumn, updatedAtColumn).
+func (r *repo) Get(ctx context.Context, id int64) (*model.User, error) {
+	builder := sq.Select(idColumn, nameColumn, emailColumn, createdAtColumn, updatedAtColumn).
 		PlaceholderFormat(sq.Dollar).
 		From(tableName).
-		Where(sq.Eq{uuidColumn: uuid}).
+		Where(sq.Eq{idColumn: id}).
 		Limit(1)
 
 	query, args, err := builder.ToSql()
@@ -70,16 +95,16 @@ func (r *repo) Get(ctx context.Context, uuid string) (*model.User, error) {
 	}
 
 	q := db.Query{
-		Name:     "note_repository.Get",
+		Name:     "user_repository.Get",
 		QueryRaw: query,
 	}
 
-	var note modelRepo.User
+	var user modelRepo.User
 	err = r.db.DB().QueryRowContext(ctx, q, args...).
-		Scan(&note.UUID, &note.Info.Name, &note.Info.Email, &note.CreatedAt, &note.UpdatedAt)
+		Scan(&user.ID, &user.Info.Name, &user.Info.Email, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	return converter.ToNoteFromRepo(&note), nil
+	return converter.ToUserFromRepo(&user), nil
 }

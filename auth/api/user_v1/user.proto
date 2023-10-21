@@ -21,7 +21,7 @@ message CreateRoleRequest {
 }
 
 message CreateRoleResponse {
-	string uuid = 1;
+	string id = 1;
 }
 
 message UserInfo {
@@ -30,7 +30,7 @@ message UserInfo {
 }
 
 message User {
-	string uuid = 1;
+	int64 id = 1;
 	UserInfo info = 2;
 	repeated string roles_uuid = 3;
 	google.protobuf.Timestamp created_at = 4;
@@ -51,11 +51,11 @@ message CreateUserRequest {
 }
 
 message CreateUserResponse {
-	string uuid = 1;
+	int64 id = 1;
 }
 
 message GetRequest {
-	string uuid = 1;
+	int64 id = 1;
 }
 
 message GetResponse {
@@ -68,11 +68,11 @@ message ListRequest {
 }
 
 message UpdateRequest {
-	string uuid = 1;
+	int64 id = 1;
 	UpdateUserInfo info = 2;
 }
 
 message DeleteRequest {
-	string uuid = 1;
+	int64 id = 1;
 }
 

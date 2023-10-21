@@ -14,13 +14,15 @@ func Add(f ...func() error) {
 	globalCloser.Add(f...)
 }
 
-// Wait ...
+// Wait waits until all goroutines have finished
 func Wait() {
+	// Wait for the global closer to finish.
 	globalCloser.Wait()
 }
 
-// CloseAll ...
+// CloseAll closes all resources.
 func CloseAll() {
+	// Call the CloseAll function of globalCloser to close all resources.
 	globalCloser.CloseAll()
 }
 
@@ -32,18 +34,20 @@ type Closer struct {
 	funcs []func() error
 }
 
-// New returns new Closer, if []os.Signal is specified Closer will automatically call CloseAll when one of signals is received from OS
+// New returns a new Closer instance.
 func New(sig ...os.Signal) *Closer {
 	c := &Closer{done: make(chan struct{})}
+
 	if len(sig) > 0 {
 		go func() {
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, sig...)
-			<-ch
-			signal.Stop(ch)
+			signalChan := make(chan os.Signal, 1)
+			signal.Notify(signalChan, sig...)
+			<-signalChan
+			signal.Stop(signalChan)
 			c.CloseAll()
 		}()
 	}
+
 	return c
 }
 

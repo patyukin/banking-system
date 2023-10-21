@@ -1,4 +1,4 @@
-package user
+package auth
 
 import (
 	"github.com/patyukin/banking-system/auth/internal/client/db"
@@ -9,10 +9,12 @@ import (
 type serv struct {
 	userRepository repository.UserRepository
 	txManager      db.TxManager
+	authRepository repository.AuthRepository
 }
 
-func NewService(userRepository repository.UserRepository, txManager db.TxManager) service.UserService {
+func NewService(authRepository repository.AuthRepository, userRepository repository.UserRepository, txManager db.TxManager) service.AuthService {
 	return &serv{
+		authRepository: authRepository,
 		userRepository: userRepository,
 		txManager:      txManager,
 	}

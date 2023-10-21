@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	UUID            string
+	ID              int64
 	Info            UserInfo
 	Password        string
 	ConfirmPassword string

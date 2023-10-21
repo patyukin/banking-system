@@ -2,21 +2,23 @@ package user
 
 import (
 	"context"
-	"log"
-
 	"github.com/patyukin/banking-system/auth/internal/converter"
 	desc "github.com/patyukin/banking-system/auth/pkg/user_v1"
+	"github.com/pkg/errors"
 )
 
 func (i *Implementation) Create(ctx context.Context, req *desc.CreateUserRequest) (*desc.CreateUserResponse, error) {
-	uuid, err := i.userService.Create(ctx, converter.ToNoteInfoFromDesc(req.GetInfo()))
+	if req.GetPassword() != req.GetPasswordConfirm() {
+		return nil, errors.New("passwords do not match")
+	}
+
+	user := converter.ToUserFromDesc(req)
+	id, err := i.userService.Create(ctx, user)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("inserted user with id: %s", uuid)
-
 	return &desc.CreateUserResponse{
-		Uuid: uuid,
+		Id: id,
 	}, nil
 }

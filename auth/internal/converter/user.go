@@ -1,34 +1,42 @@
 package converter
 
 import (
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"github.com/patyukin/banking-system/auth/internal/model"
 	desc "github.com/patyukin/banking-system/auth/pkg/user_v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"time"
 )
 
-func ToNoteFromService(user *model.User) *desc.User {
+func ToUserFromDesc(user *desc.CreateUserRequest) *model.User {
+	return &model.User{
+		Password:  user.Password,
+		Info:      *ToUserInfoFromDesc(user.GetInfo()),
+		CreatedAt: time.Now(),
+	}
+}
+
+func ToUserFromService(user *model.User) *desc.User {
 	var updatedAt *timestamppb.Timestamp
 	if user.UpdatedAt.Valid {
 		updatedAt = timestamppb.New(user.UpdatedAt.Time)
 	}
 
 	return &desc.User{
-		Uuid:      user.UUID,
-		Info:      ToNoteInfoFromService(user.Info),
+		Id:        user.ID,
+		Info:      ToUserInfoFromService(user.Info),
 		CreatedAt: timestamppb.New(user.CreatedAt),
 		UpdatedAt: updatedAt,
 	}
 }
 
-func ToNoteInfoFromService(info model.UserInfo) *desc.UserInfo {
+func ToUserInfoFromService(info model.UserInfo) *desc.UserInfo {
 	return &desc.UserInfo{
 		Name:  info.Name,
 		Email: info.Email,
 	}
 }
 
-func ToNoteInfoFromDesc(info *desc.UserInfo) *model.UserInfo {
+func ToUserInfoFromDesc(info *desc.UserInfo) *model.UserInfo {
 	return &model.UserInfo{
 		Name:  info.Name,
 		Email: info.Email,
