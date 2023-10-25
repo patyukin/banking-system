@@ -1,7 +1,6 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 )
 
@@ -11,7 +10,7 @@ type User struct {
 	Password        string
 	ConfirmPassword string
 	CreatedAt       time.Time
-	UpdatedAt       sql.NullTime
+	UpdatedAt       time.Time
 }
 
 type UserInfo struct {

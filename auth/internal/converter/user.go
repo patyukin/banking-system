@@ -16,16 +16,11 @@ func ToUserFromDesc(user *desc.CreateUserRequest) *model.User {
 }
 
 func ToUserFromService(user *model.User) *desc.User {
-	var updatedAt *timestamppb.Timestamp
-	if user.UpdatedAt.Valid {
-		updatedAt = timestamppb.New(user.UpdatedAt.Time)
-	}
-
 	return &desc.User{
 		Id:        user.ID,
 		Info:      ToUserInfoFromService(user.Info),
 		CreatedAt: timestamppb.New(user.CreatedAt),
-		UpdatedAt: updatedAt,
+		UpdatedAt: timestamppb.New(time.Now()),
 	}
 }
 

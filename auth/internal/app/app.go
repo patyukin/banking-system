@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	authHttpHandler "github.com/patyukin/banking-system/auth/internal/api/http/auth"
 	userHttpHandler "github.com/patyukin/banking-system/auth/internal/api/http/user"
 	"github.com/patyukin/banking-system/auth/internal/closer"
@@ -138,6 +139,11 @@ func (a *App) runGRPCServer() error {
 }
 
 func (a *App) initHTTPServer(_ context.Context) error {
+	grpcGwMux := runtime.NewServeMux()
+	mux := http.NewServeMux()
+
+	mux.Handle("/api/v1/", grpcGwMux)
+
 	addr := a.serviceProvider.HTTPConfig().Address()
 	log.Printf("HTTP server is running on %s", addr)
 

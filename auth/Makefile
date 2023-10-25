@@ -9,14 +9,17 @@ install-golangci-lint:
 	GOBIN=$(LOCAL_BIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
 
 lint:
-	GOBIN=$(LOCAL_BIN) golangci-lint run ./... --config .golangci.pipeline.yaml
+	GOBIN=$(LOCAL_BIN) ./bin/golangci-lint run ./... --config .golangci.pipeline.yaml
 
 install-deps:
 	GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
 	GOBIN=$(LOCAL_BIN) go install -mod=mod google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 	GOBIN=$(LOCAL_BIN) go install github.com/pressly/goose/v3/cmd/goose@v3.14.0
+	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.18.0
+	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.18.0
 
 get-deps:
+	go get -u github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
 	go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 	go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
@@ -25,19 +28,28 @@ generate:
 
 generate-user-api:
 	mkdir -p pkg/user_v1
-	protoc --proto_path api/user_v1 \
-	--go_out=pkg/user_v1 --go_opt=paths=source_relative \
-	--plugin=protoc-gen-go=bin/protoc-gen-go \
-	--go-grpc_out=pkg/user_v1 --go-grpc_opt=paths=source_relative \
-	--plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
-	api/user_v1/user.proto
+	protoc --proto_path ./api \
+		 --go_out=pkg --go_opt=paths=source_relative \
+		 --plugin=protoc-gen-go=bin/protoc-gen-go \
+		 --go-grpc_out=pkg --go-grpc_opt=paths=source_relative \
+		 --plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
+		 --grpc-gateway_out=pkg --grpc-gateway_opt generate_unbound_methods=true \
+		 --plugin=protoc-gen-grpc-gateway=bin/protoc-gen-grpc-gateway \
+		 ./api/user_v1/user.proto
+
 	mkdir -p pkg/auth_v1
-	protoc --proto_path api/auth_v1 \
-	--go_out=pkg/auth_v1 --go_opt=paths=source_relative \
-	--plugin=protoc-gen-go=bin/protoc-gen-go \
-	--go-grpc_out=pkg/auth_v1 --go-grpc_opt=paths=source_relative \
-	--plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
-	api/auth_v1/auth.proto
+	protoc --proto_path ./api \
+		 --go_out=pkg --go_opt=paths=source_relative \
+		 --plugin=protoc-gen-go=bin/protoc-gen-go \
+		 --go-grpc_out=pkg --go-grpc_opt=paths=source_relative \
+		 --plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
+		 --grpc-gateway_out=pkg --grpc-gateway_opt generate_unbound_methods=true \
+		 --plugin=protoc-gen-grpc-gateway=bin/protoc-gen-grpc-gateway \
+		 ./api/auth_v1/auth.proto
+
+	find pkg/github.com/ -type f -name "user*.go" -exec mv {} pkg/user_v1 \;
+	find pkg/github.com/ -type f -name "auth*.go" -exec mv {} pkg/auth_v1 \;
+	rm -rf pkg/github.com/
 
 local-migration-status:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v
