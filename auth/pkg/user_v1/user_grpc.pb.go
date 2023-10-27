@@ -27,8 +27,11 @@ type UserV1Client interface {
 	CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*CreateRoleResponse, error)
 	// Create User
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
+	// Get One User
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	// Update User
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Delete User
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -93,8 +96,11 @@ type UserV1Server interface {
 	CreateRole(context.Context, *CreateRoleRequest) (*CreateRoleResponse, error)
 	// Create User
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
+	// Get One User
 	Get(context.Context, *GetRequest) (*GetResponse, error)
+	// Update User
 	Update(context.Context, *UpdateRequest) (*emptypb.Empty, error)
+	// Delete User
 	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedUserV1Server()
 }

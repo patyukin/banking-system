@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"github.com/patyukin/banking-system/auth/internal/api/grpc/auth"
-	"github.com/patyukin/banking-system/auth/internal/api/grpc/user"
+	"github.com/patyukin/banking-system/auth/internal/api/auth"
+	"github.com/patyukin/banking-system/auth/internal/api/user"
 	authRepository "github.com/patyukin/banking-system/auth/internal/repository/auth"
 	"log"
 

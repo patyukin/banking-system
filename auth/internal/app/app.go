@@ -4,10 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	authHttpHandler "github.com/patyukin/banking-system/auth/internal/api/http/auth"
-	userHttpHandler "github.com/patyukin/banking-system/auth/internal/api/http/user"
 	"github.com/patyukin/banking-system/auth/internal/closer"
 	"log"
 	"net"
@@ -15,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -42,7 +38,7 @@ func NewApp(ctx context.Context) (*App, error) {
 	return a, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run(ctx context.Context) error {
 	defer func() {
 		closer.CloseAll()
 		closer.Wait()
@@ -54,13 +50,13 @@ func (a *App) Run() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		errHTTP = a.runHTTPServer()
+		errGRPC = a.runGRPCServer()
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		errGRPC = a.runGRPCServer()
+		errHTTP = a.runHTTPServer(ctx)
 	}()
 
 	wg.Wait()
@@ -139,48 +135,47 @@ func (a *App) runGRPCServer() error {
 }
 
 func (a *App) initHTTPServer(_ context.Context) error {
-	grpcGwMux := runtime.NewServeMux()
 	mux := http.NewServeMux()
-
-	mux.Handle("/api/v1/", grpcGwMux)
-
-	addr := a.serviceProvider.HTTPConfig().Address()
-	log.Printf("HTTP server is running on %s", addr)
-
-	authHandler := authHttpHandler.New()
-	userHandler := userHttpHandler.New(a.serviceProvider.userService)
-
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Post("/sign-in", authHandler.SignIn)
-	r.Post("/sign-in", userHandler.Create)
-
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		_, err := w.Write([]byte("Not found"))
-		if err != nil {
-			log.Println(err)
-		}
-	})
-
 	a.httpServer = &http.Server{
-		Addr:           addr,
+		Addr:           a.serviceProvider.HTTPConfig().Address(),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
-		Handler:        r,
+		Handler:        mux,
 	}
 
 	return nil
 }
 
-func (a *App) runHTTPServer() error {
-	err := a.httpServer.ListenAndServe()
+func (a *App) runHTTPServer(ctx context.Context) error {
+	gateWayConn, err := grpc.DialContext(
+		ctx,
+		a.serviceProvider.GRPCConfig().Address(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+
 	if err != nil {
-		// log
+		return err
+	}
+
+	grpcGwMux := runtime.NewServeMux()
+	//err := descUser.RegisterUserV1HandlerFromEndpoint(ctx, grpcGwMux, a.serviceProvider.GRPCConfig().Address(), []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())})
+	err = descUser.RegisterUserV1Handler(ctx, grpcGwMux, gateWayConn)
+	if err != nil {
+		return err
+	}
+
+	//err = descAuth.RegisterAuthV1HandlerFromEndpoint(ctx, grpcGwMux, a.serviceProvider.GRPCConfig().Address(), []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())})
+	err = descAuth.RegisterAuthV1Handler(ctx, grpcGwMux, gateWayConn)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("HTTP server is running on %s", a.serviceProvider.HTTPConfig().Address())
+	err = a.httpServer.ListenAndServe()
+	if err != nil {
+		// TODO log
 		return err
 	}
 

@@ -1,3 +1,5 @@
+.PHONY:
+
 include .env
 
 LOCAL_BIN:=$(CURDIR)/bin
@@ -22,6 +24,7 @@ get-deps:
 	go get -u github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
 	go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 	go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	go get -u github.com/googleapis/api-common-protos
 
 generate:
 	make generate-user-api
@@ -33,7 +36,7 @@ generate-user-api:
 		 --plugin=protoc-gen-go=bin/protoc-gen-go \
 		 --go-grpc_out=pkg --go-grpc_opt=paths=source_relative \
 		 --plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
-		 --grpc-gateway_out=pkg --grpc-gateway_opt generate_unbound_methods=true \
+		 --grpc-gateway_out=pkg --grpc-gateway_opt=paths=source_relative \
 		 --plugin=protoc-gen-grpc-gateway=bin/protoc-gen-grpc-gateway \
 		 ./api/user_v1/user.proto
 
@@ -43,13 +46,9 @@ generate-user-api:
 		 --plugin=protoc-gen-go=bin/protoc-gen-go \
 		 --go-grpc_out=pkg --go-grpc_opt=paths=source_relative \
 		 --plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
-		 --grpc-gateway_out=pkg --grpc-gateway_opt generate_unbound_methods=true \
+		 --grpc-gateway_out=pkg --grpc-gateway_opt=paths=source_relative \
 		 --plugin=protoc-gen-grpc-gateway=bin/protoc-gen-grpc-gateway \
 		 ./api/auth_v1/auth.proto
-
-	find pkg/github.com/ -type f -name "user*.go" -exec mv {} pkg/user_v1 \;
-	find pkg/github.com/ -type f -name "auth*.go" -exec mv {} pkg/auth_v1 \;
-	rm -rf pkg/github.com/
 
 local-migration-status:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v

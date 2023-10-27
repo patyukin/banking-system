@@ -1,0 +1,11 @@
+supersms:
+  url: https://api.supersms.com
+
+nuomda:
+  url: https://api.nuomda.com
+
+sdiirt:
+  url: https://api.sdiirt.com
+
+twilio:
+  url: https://api.twilio.com

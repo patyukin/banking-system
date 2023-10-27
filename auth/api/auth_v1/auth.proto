@@ -2,9 +2,6 @@ syntax = "proto3";
 
 package auth_v1;
 
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
-import "google/protobuf/wrappers.proto";
 import "google/api/annotations.proto";
 
 option go_package = "github.com/patyukin/banking-system/auth/pkg/auth_v1;auth_v1";

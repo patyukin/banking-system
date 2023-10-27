@@ -1,0 +1,14 @@
+mailgun:
+  url: https://api.mailgun.net
+
+sendgrid:
+  url: https://api.sendgrid.com
+
+mailjet:
+    url: https://api.mailjet.com
+
+postmark:
+    url: https://api.postmarkapp.com
+
+sparkpost:
+    url: https://api.sparkpost.com

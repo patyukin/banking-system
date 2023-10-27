@@ -7,6 +7,7 @@ import (
 type User struct {
 	ID              int64
 	Info            UserInfo
+	Roles           []Role
 	Password        string
 	ConfirmPassword string
 	CreatedAt       time.Time
@@ -16,4 +17,9 @@ type User struct {
 type UserInfo struct {
 	Name  string
 	Email string
+}
+
+type Role struct {
+	ID   int32
+	Name string
 }
