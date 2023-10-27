@@ -4,21 +4,20 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/patyukin/banking-system/auth/internal/closer"
 	"log"
 	"net"
 	"net/http"
 	"sync"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
-
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/patyukin/banking-system/auth/internal/closer"
 	"github.com/patyukin/banking-system/auth/internal/config"
 	descAuth "github.com/patyukin/banking-system/auth/pkg/auth_v1"
 	descUser "github.com/patyukin/banking-system/auth/pkg/user_v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 type App struct {
@@ -76,7 +75,6 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initConfig,
 		a.initServiceProvider,
 		a.initGRPCServer,
-		a.initHTTPServer,
 	}
 
 	for _, f := range inits {
@@ -134,8 +132,9 @@ func (a *App) runGRPCServer() error {
 	return nil
 }
 
-func (a *App) initHTTPServer(_ context.Context) error {
-	mux := http.NewServeMux()
+func (a *App) runHTTPServer(ctx context.Context) error {
+	mux := runtime.NewServeMux()
+
 	a.httpServer = &http.Server{
 		Addr:           a.serviceProvider.HTTPConfig().Address(),
 		ReadTimeout:    10 * time.Second,
@@ -144,10 +143,6 @@ func (a *App) initHTTPServer(_ context.Context) error {
 		Handler:        mux,
 	}
 
-	return nil
-}
-
-func (a *App) runHTTPServer(ctx context.Context) error {
 	gateWayConn, err := grpc.DialContext(
 		ctx,
 		a.serviceProvider.GRPCConfig().Address(),
@@ -159,15 +154,12 @@ func (a *App) runHTTPServer(ctx context.Context) error {
 		return err
 	}
 
-	grpcGwMux := runtime.NewServeMux()
-	//err := descUser.RegisterUserV1HandlerFromEndpoint(ctx, grpcGwMux, a.serviceProvider.GRPCConfig().Address(), []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())})
-	err = descUser.RegisterUserV1Handler(ctx, grpcGwMux, gateWayConn)
+	err = descUser.RegisterUserV1Handler(ctx, mux, gateWayConn)
 	if err != nil {
 		return err
 	}
 
-	//err = descAuth.RegisterAuthV1HandlerFromEndpoint(ctx, grpcGwMux, a.serviceProvider.GRPCConfig().Address(), []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())})
-	err = descAuth.RegisterAuthV1Handler(ctx, grpcGwMux, gateWayConn)
+	err = descAuth.RegisterAuthV1Handler(ctx, mux, gateWayConn)
 	if err != nil {
 		return err
 	}
