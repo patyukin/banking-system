@@ -2,11 +2,12 @@ package auth
 
 import (
 	"context"
+	"os"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/patyukin/banking-system/auth/internal/model"
 	desc "github.com/patyukin/banking-system/auth/pkg/auth_v1"
-	"os"
-	"time"
 )
 
 const (

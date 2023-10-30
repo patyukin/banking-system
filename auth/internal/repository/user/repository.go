@@ -18,7 +18,7 @@ const (
 	idColumn        = "id"
 	nameColumn      = "name"
 	emailColumn     = "email"
-	passwordColumn  = "password"
+	passwordColumn  = "password_hash"
 	createdAtColumn = "created_at"
 	updatedAtColumn = "updated_at"
 )

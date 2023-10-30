@@ -2,8 +2,9 @@ package email
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Provider struct {
@@ -18,17 +19,17 @@ type Provider struct {
 }
 
 func New() (*[]Provider, error) {
-	// get config sms providers list from emailProviders.yaml
-	emailProvidersData, err := os.ReadFile("internal/config/emailProviders.yaml")
+	// get config sms providers list from email.yaml
+	emailProvidersData, err := os.ReadFile("internal/config/email.yaml")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read emailProviders.yaml: %w", err)
+		return nil, fmt.Errorf("failed to read email.yaml: %w", err)
 	}
 
 	// Parse the YAML data into a struct
 	var emailProviders []Provider
 	err = yaml.Unmarshal(emailProvidersData, &emailProviders)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse emailProviders.yaml: %w", err)
+		return nil, fmt.Errorf("failed to parse email.yaml: %w", err)
 	}
 
 	return &emailProviders, nil
