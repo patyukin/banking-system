@@ -35,7 +35,7 @@ func (s *GRPCTestSuite) SetupSuite() {
 		s.FailNow("Failed to init app: " + err.Error())
 	}
 
-	go app.Run(ctx)
+	go app.Run()
 
 	conn, err := grpc.Dial("0.0.0.0:11110", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
