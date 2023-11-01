@@ -1,0 +1,29 @@
+version: "3.8"
+
+volumes:
+  cassandra_node1_volume:
+
+services:
+  cassandra-node1:
+    image: cassandra:5.0
+    ports:
+      - 9043:${CASSANDRA_PORT}
+    environment:
+      - CASSANDRA_CLUSTER_NAME=notifier
+      - CASSANDRA_SEEDS=cassandra-node1
+      - CASSANDRA_PASSWORD_SEEDER=yes
+      - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
+    volumes:
+      - cassandra_node1_volume:/var/lib/cassandra
+      - ./entrypoint-wrap.sh:/docker-entrypoint-initdb.d
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./entrypoint-wrap.sh:/docker-entrypoint-initdb.d
+      - .:/migrations
+    command: ["-path", "/migrations", "-database",  "cassandra://cassandra-node1:9042/notifier?sslmode=disable", "up", "3"]
+    links:
+      - cassandra-node1
+    depends_on:
+      - cassandra-node1

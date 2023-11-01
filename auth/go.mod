@@ -12,7 +12,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/joho/godotenv v1.5.1
-	github.com/olezhek28/platform_common v0.0.0-20230822195735-04af626dd264
 	github.com/pkg/errors v0.9.1
 	github.com/rakyll/statik v0.1.7
 	github.com/rs/cors v1.10.1

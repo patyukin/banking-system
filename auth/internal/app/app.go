@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/olezhek28/platform_common/pkg/closer"
+	"github.com/patyukin/banking-system/auth/internal/closer"
 	"github.com/patyukin/banking-system/auth/internal/interceptor"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/cors"
