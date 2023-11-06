@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"github.com/patyukin/banking-system/notifier/internal/queue/kafka"
 	"io"
 	"log"
 	"net"
@@ -19,7 +21,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/patyukin/banking-system/notifier/internal/config"
-	descAuth "github.com/patyukin/banking-system/notifier/pkg/notifier_v1"
+	descNotifier "github.com/patyukin/banking-system/notifier/pkg/notifier_v1"
 	_ "github.com/patyukin/banking-system/notifier/statik"
 )
 
@@ -93,6 +95,7 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initGRPCServer,
 		a.initHTTPServer,
 		a.initSwaggerServer,
+		a.initConsumer,
 	}
 
 	for _, f := range inits {
@@ -128,8 +131,7 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 
 	reflection.Register(a.grpcServer)
 
-	descUser.RegisterUserV1Server(a.grpcServer, a.serviceProvider.UserImpl(ctx))
-	descAuth.RegisterAuthV1Server(a.grpcServer, a.serviceProvider.AuthImpl(ctx))
+	descNotifier.RegisterNotifierV1Server(a.grpcServer, a.serviceProvider.NotifierImpl(ctx))
 
 	return nil
 }
@@ -141,12 +143,7 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	err := descUser.RegisterUserV1HandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCConfig().Address(), opts)
-	if err != nil {
-		return err
-	}
-
-	err = descAuth.RegisterAuthV1HandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCConfig().Address(), opts)
+	err := descNotifier.RegisterNotifierV1HandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCConfig().Address(), opts)
 	if err != nil {
 		return err
 	}
@@ -179,6 +176,27 @@ func (a *App) initSwaggerServer(_ context.Context) error {
 	a.swaggerServer = &http.Server{
 		Addr:    a.serviceProvider.SwaggerConfig().Address(),
 		Handler: mux,
+	}
+
+	return nil
+}
+
+func (a *App) initConsumer(_ context.Context) error {
+	var err error
+	a.serviceProvider.consumer, err = kafka.NewConsumer([]string{"localhost:9092"}, "my-topic")
+	if err != nil {
+		return fmt.Errorf("failed to init consumer: %w", err)
+	}
+
+	closer.Add(a.serviceProvider.consumer.Close)
+
+	return nil
+}
+
+func (a *App) runConsumer() error {
+	err := a.serviceProvider.consumer.Consume()
+	if err != nil {
+		return fmt.Errorf("failed to init consumer: %w", err)
 	}
 
 	return nil

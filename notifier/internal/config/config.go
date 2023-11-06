@@ -17,10 +17,6 @@ type SwaggerConfig interface {
 	Address() string
 }
 
-type PGConfig interface {
-	DSN() string
-}
-
 type GRPCConfig interface {
 	Address() string
 }

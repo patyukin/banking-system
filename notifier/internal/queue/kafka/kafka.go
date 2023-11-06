@@ -1,78 +1,102 @@
 package kafka
 
 import (
-	"context"
 	"fmt"
-	"log"
-
 	"github.com/IBM/sarama"
+	"log"
+	"sync"
 )
 
-type KafkaConsumer struct {
-	ctx      context.Context
-	consumer sarama.ConsumerGroup
-	topic    string
+// KafkaConsumer is the interface for Kafka consumer
+type KafkaConsumer interface {
+	Consume() error
+	Close() error
 }
 
-func NewConsumer(ctx context.Context, brokerList []string, topic string) (*KafkaConsumer, error) {
-	config := sarama.NewConfig()
-	config.Version = sarama.V3_5_1_0
-	config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
-
-	// Create consumer group
-	kafkaConsumerGroup := topic + "-consumer-group"
-	consumerGroup, err := sarama.NewConsumerGroup(brokerList, kafkaConsumerGroup, config)
-	if err != nil {
-		return &KafkaConsumer{}, fmt.Errorf("starting consumer group, err: %w", err)
-	}
-
-	kafkaConsumer := &KafkaConsumer{
-		ctx:      ctx,
-		consumer: consumerGroup,
-		topic:    topic,
-	}
-
-	return kafkaConsumer, nil
-}
-
-func (c *KafkaConsumer) RunConsume(handlerFunc func(ctx context.Context, key string, value string) error) error {
-	consumerGroupHandler := Consumer{
-		ctx:         c.ctx,
-		handlerFunc: handlerFunc,
-	}
-	err := c.consumer.Consume(c.ctx, []string{c.topic}, &consumerGroupHandler)
-	if err != nil {
-		return fmt.Errorf("consuming via handler, err: %w", err)
-	}
-	return nil
-}
-
-// Consumer represents a Sarama consumer group consumer.
+// Consumer implements the KafkaConsumer interface
 type Consumer struct {
-	ctx         context.Context
-	handlerFunc func(ctx context.Context, key string, value string) error
+	consumer sarama.Consumer
+	messages chan *sarama.ConsumerMessage
+	topic    string
+	done     chan bool
 }
 
-// Setup is run at the beginning of a new session, before ConsumeClaim.
-func (consumer *Consumer) Setup(sarama.ConsumerGroupSession) error {
-	log.Println("consumer - setup")
-	return nil
-}
+// NewConsumer creates a new Kafka consumer
+func NewConsumer(brokers []string, topic string) (*Consumer, error) {
+	config := sarama.NewConfig()
+	config.Consumer.Return.Errors = true
 
-// Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited.
-func (consumer *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
-	log.Println("consumer - cleanup")
-	return nil
-}
-
-// ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
-func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for message := range claim.Messages() {
-		err := consumer.handlerFunc(consumer.ctx, string(message.Key), string(message.Value))
-		if err == nil {
-			session.MarkMessage(message, "")
-		}
+	client, err := sarama.NewClient(brokers, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client, err: %w", err)
 	}
+
+	consumer, err := sarama.NewConsumerFromClient(client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create consumer, err: %w", err)
+	}
+
+	messages := make(chan *sarama.ConsumerMessage)
+
+	return &Consumer{
+		consumer: consumer,
+		messages: messages,
+		topic:    topic,
+		done:     make(chan bool),
+	}, nil
+}
+
+// Consume starts consuming messages from Kafka topic
+func (c *Consumer) Consume() error {
+	partitions, err := c.consumer.Partitions(c.topic)
+	if err != nil {
+		return fmt.Errorf("failed to get partitions: %w", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(partitions))
+	for _, partition := range partitions {
+		go func(partition int32) {
+			defer wg.Done()
+			consumer, err := c.consumer.ConsumePartition(c.topic, partition, sarama.OffsetNewest)
+			if err != nil {
+				log.Println("Failed to start consumer for partition", partition, ":", err)
+				return
+			}
+
+			defer func(consumer sarama.PartitionConsumer) {
+				err = consumer.Close()
+				if err != nil {
+					log.Println("Failed to close consumer:", err)
+				}
+			}(consumer)
+
+			for message := range consumer.Messages() {
+				c.messages <- message
+			}
+		}(partition)
+	}
+
+	go func() {
+		for message := range c.messages {
+			processMessage(message)
+		}
+	}()
+
+	wg.Wait()
+
+	return nil
+}
+
+func processMessage(message *sarama.ConsumerMessage) {
+	log.Printf("Received message: topic=%s, partition=%d, offset=%d, message=%s\n",
+		message.Topic, message.Partition, message.Offset, string(message.Value))
+}
+
+// Close stops the consumer
+func (c *Consumer) Close() error {
+	close(c.messages)
+	close(c.done)
+
 	return nil
 }

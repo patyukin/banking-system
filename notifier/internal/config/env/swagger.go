@@ -4,7 +4,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/patyukin/banking-system/auth/internal/config"
+	"github.com/patyukin/banking-system/notifier/internal/config"
 	"github.com/pkg/errors"
 )
 

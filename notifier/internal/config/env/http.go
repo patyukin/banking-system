@@ -2,7 +2,7 @@ package env
 
 import (
 	"errors"
-	"github.com/patyukin/banking-system/auth/internal/config"
+	"github.com/patyukin/banking-system/notifier/internal/config"
 	"net"
 	"os"
 )
