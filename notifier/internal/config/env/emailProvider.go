@@ -1,8 +1,8 @@
 package env
 
 import (
+	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 )
 
@@ -17,14 +17,14 @@ type EmailProviderImpl struct {
 }
 
 type EmailProvider struct {
-	Name         string
-	SmtpPort     int8
-	SmtpHost     string
-	SmtpLogin    string
-	SmtpPassword string
-	SmtpSecure   bool
-	MailFrom     string
-	NameFrom     string
+	Name         string `json:"name"`
+	SmtpPort     int32  `json:"port"`
+	SmtpHost     string `json:"host"`
+	SmtpLogin    string `json:"login"`
+	SmtpPassword string `json:"password"`
+	SmtpSecure   bool   `json:"secure"`
+	MailFrom     string `json:"mail_from"`
+	NameFrom     string `json:"name_from"`
 }
 
 func (e *EmailProviderImpl) GetAll() ([]EmailProvider, error) {
@@ -63,7 +63,7 @@ func NewEmailProvider() ([]EmailProvider, error) {
 	}
 
 	var emailProvidersData []EmailProvider
-	err := yaml.Unmarshal([]byte(emailProviders), &emailProvidersData)
+	err := json.Unmarshal([]byte(emailProviders), &emailProvidersData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse email Providers: %w", err)
 	}

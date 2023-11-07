@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/patyukin/banking-system/notifier/internal/api/notifier"
 	"github.com/patyukin/banking-system/notifier/internal/queue/kafka"
+	"github.com/patyukin/banking-system/notifier/internal/sender/email"
 	"log"
 
 	"github.com/patyukin/banking-system/notifier/internal/config"
@@ -17,7 +18,8 @@ type serviceProvider struct {
 
 	notifierImpl *notifier.Implementation
 
-	consumer kafka.KafkaConsumer
+	consumer *kafka.KafkaConsumer
+	sender   email.Sender
 }
 
 func newServiceProvider() *serviceProvider {

@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/patyukin/banking-system/notifier/internal/config/env"
 	"github.com/patyukin/banking-system/notifier/internal/queue/kafka"
+	"github.com/patyukin/banking-system/notifier/internal/sender/email"
 	"io"
 	"log"
 	"net"
@@ -45,7 +47,7 @@ func NewApp(ctx context.Context) (*App, error) {
 	return a, nil
 }
 
-func (a *App) Run() error {
+func (a *App) Run(ctx context.Context) error {
 	defer func() {
 		closer.CloseAll()
 		closer.Wait()
@@ -83,6 +85,16 @@ func (a *App) Run() error {
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		err := a.runConsumer(ctx)
+		if err != nil {
+			log.Fatalf("failed to run consumer: %v", err)
+		}
+	}()
+
 	wg.Wait()
 
 	return nil
@@ -95,6 +107,7 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initGRPCServer,
 		a.initHTTPServer,
 		a.initSwaggerServer,
+		a.initSender,
 		a.initConsumer,
 	}
 
@@ -181,7 +194,20 @@ func (a *App) initSwaggerServer(_ context.Context) error {
 	return nil
 }
 
-func (a *App) initConsumer(_ context.Context) error {
+func (a *App) initSender(_ context.Context) error {
+	emailProviders, err := env.NewEmailProvider()
+	if err != nil {
+		return fmt.Errorf("failed to init email provider: %w", err)
+	}
+
+	if a.serviceProvider.sender == nil {
+		a.serviceProvider.sender, err = email.New(emailProviders)
+	}
+
+	return nil
+}
+
+func (a *App) initConsumer(ctx context.Context) error {
 	var err error
 	a.serviceProvider.consumer, err = kafka.NewConsumer([]string{"localhost:9092"}, "my-topic")
 	if err != nil {
@@ -193,15 +219,14 @@ func (a *App) initConsumer(_ context.Context) error {
 	return nil
 }
 
-func (a *App) runConsumer() error {
-	err := a.serviceProvider.consumer.Consume()
+func (a *App) runConsumer(ctx context.Context) error {
+	err := a.serviceProvider.consumer.RunConsume(ctx, a.serviceProvider.sender.Send)
 	if err != nil {
 		return fmt.Errorf("failed to init consumer: %w", err)
 	}
 
 	return nil
 }
-
 func (a *App) runGRPCServer() error {
 	log.Printf("GRPC server is running on %s", a.serviceProvider.GRPCConfig().Address())
 
@@ -257,7 +282,13 @@ func serveSwaggerFile(path string) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		defer file.Close()
+
+		defer func(file http.File) {
+			err = file.Close()
+			if err != nil {
+				log.Printf("failed to close http.File, err: %v", err)
+			}
+		}(file)
 
 		log.Printf("Read swagger file: %s", path)
 
