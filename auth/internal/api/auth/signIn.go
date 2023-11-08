@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+
 	desc "github.com/patyukin/banking-system/auth/pkg/auth_v1"
 	"golang.org/x/crypto/bcrypt"
 )

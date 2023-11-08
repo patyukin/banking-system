@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	desc "github.com/patyukin/banking-system/auth/pkg/auth_v1"
 
 	"github.com/patyukin/banking-system/auth/internal/model"

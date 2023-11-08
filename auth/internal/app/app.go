@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/patyukin/banking-system/auth/internal/closer"
 	"github.com/patyukin/banking-system/auth/internal/interceptor"
+	"github.com/patyukin/banking-system/auth/internal/queue/kafka"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/cors"
 	"google.golang.org/grpc"
@@ -94,6 +96,7 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initGRPCServer,
 		a.initHTTPServer,
 		a.initSwaggerServer,
+		a.initProducer,
 	}
 
 	for _, f := range inits {
@@ -144,12 +147,12 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 
 	err := descUser.RegisterUserV1HandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCConfig().Address(), opts)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to descUser.RegisterUserV1HandlerFromEndpoint, error: %v", err)
 	}
 
 	err = descAuth.RegisterAuthV1HandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCConfig().Address(), opts)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to descAuth.RegisterAuthV1HandlerFromEndpoint, error: %v", err)
 	}
 
 	corsMiddleware := cors.New(cors.Options{
@@ -261,4 +264,16 @@ func serveSwaggerFile(path string) http.HandlerFunc {
 
 		log.Printf("Served swagger file: %s", path)
 	}
+}
+
+func (a *App) initProducer(_ context.Context) error {
+	var err error
+	if a.serviceProvider.producer == nil {
+		a.serviceProvider.producer, err = kafka.NewSyncProducer([]string{"localhost:9092"}, "my-topic")
+		if err != nil {
+			return fmt.Errorf("failed to create kafka producer: %v", err)
+		}
+	}
+
+	return nil
 }

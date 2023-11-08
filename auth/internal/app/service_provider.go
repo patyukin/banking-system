@@ -6,6 +6,7 @@ import (
 
 	"github.com/patyukin/banking-system/auth/internal/api/auth"
 	"github.com/patyukin/banking-system/auth/internal/api/user"
+	"github.com/patyukin/banking-system/auth/internal/queue/kafka"
 	authRepository "github.com/patyukin/banking-system/auth/internal/repository/auth"
 
 	"github.com/patyukin/banking-system/auth/internal/client/db"
@@ -38,6 +39,7 @@ type serviceProvider struct {
 
 	userImpl *user.Implementation
 	authImpl *auth.Implementation
+	producer *kafka.KafkaProducer
 }
 
 func newServiceProvider() *serviceProvider {
@@ -164,10 +166,15 @@ func (s *serviceProvider) AuthService(ctx context.Context) service.AuthService {
 			s.AuthRepository(ctx),
 			s.UserRepository(ctx),
 			s.TxManager(ctx),
+			s.Producer(ctx),
 		)
 	}
 
 	return s.authService
+}
+
+func (s *serviceProvider) Producer(_ context.Context) *kafka.KafkaProducer {
+	return s.producer
 }
 
 func (s *serviceProvider) AuthImpl(ctx context.Context) *auth.Implementation {

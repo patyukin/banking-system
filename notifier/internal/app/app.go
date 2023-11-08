@@ -3,15 +3,16 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/patyukin/banking-system/notifier/internal/config/env"
-	"github.com/patyukin/banking-system/notifier/internal/queue/kafka"
-	"github.com/patyukin/banking-system/notifier/internal/sender/email"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"sync"
+
+	"github.com/patyukin/banking-system/notifier/internal/config/env"
+	"github.com/patyukin/banking-system/notifier/internal/queue/kafka"
+	"github.com/patyukin/banking-system/notifier/internal/sender/email"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/patyukin/banking-system/notifier/internal/interceptor"
@@ -207,7 +208,7 @@ func (a *App) initSender(_ context.Context) error {
 	return nil
 }
 
-func (a *App) initConsumer(ctx context.Context) error {
+func (a *App) initConsumer(_ context.Context) error {
 	var err error
 	a.serviceProvider.consumer, err = kafka.NewConsumer([]string{"localhost:9092"}, "my-topic")
 	if err != nil {

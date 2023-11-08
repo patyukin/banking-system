@@ -4,9 +4,10 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/IBM/sarama"
 	"github.com/pkg/errors"
-	"log"
 )
 
 var _ KafkaConsumerInterface = (*KafkaConsumer)(nil)
@@ -22,9 +23,8 @@ type KafkaConsumer struct {
 }
 
 func NewConsumer(brokerList []string, topic string) (*KafkaConsumer, error) {
-
 	config := sarama.NewConfig()
-	config.Version = sarama.V2_5_0_0
+	config.Version = sarama.V3_5_1_0
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
 

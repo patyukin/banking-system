@@ -21,6 +21,7 @@ type Claims struct {
 
 func (s *serv) SignIn(ctx context.Context, user *model.User) (*desc.AuthResponse, error) {
 	// generate claims
+	s.producer.SendMessage("ss", "sdsdsd")
 	mySigningKey := []byte(os.Getenv(TokenSignKey))
 	claims := Claims{
 		user.ID,

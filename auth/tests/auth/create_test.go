@@ -63,6 +63,19 @@ func (s *GRPCTestSuite) TestSignIn() {
 	s.Require().NotNil(res)
 }
 
+func (s *GRPCTestSuite) TestSignInService() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1000)
+	defer cancel()
+
+	res, err := s.serviceClient.SignIn(ctx, &desc.AuthRequest{
+		Email:    gofakeit.Email(),
+		Password: gofakeit.Password(true, false, false, false, false, 10),
+	})
+
+	s.Require().NoError(err)
+	s.Require().NotNil(res)
+}
+
 func TestGRPCTestSuite(t *testing.T) {
 	suite.Run(t, new(GRPCTestSuite))
 }
