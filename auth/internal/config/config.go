@@ -13,10 +13,18 @@ func Load(path string) error {
 	return nil
 }
 
+type SwaggerConfig interface {
+	Address() string
+}
+
 type PGConfig interface {
 	DSN() string
 }
 
 type GRPCConfig interface {
+	Address() string
+}
+
+type HTTPConfig interface {
 	Address() string
 }

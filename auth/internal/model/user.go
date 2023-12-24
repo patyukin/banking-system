@@ -1,20 +1,25 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 )
 
 type User struct {
-	UUID            string
+	ID              int64
 	Info            UserInfo
+	Roles           []Role
 	Password        string
 	ConfirmPassword string
 	CreatedAt       time.Time
-	UpdatedAt       sql.NullTime
+	UpdatedAt       time.Time
 }
 
 type UserInfo struct {
 	Name  string
 	Email string
+}
+
+type Role struct {
+	ID   int32
+	Name string
 }

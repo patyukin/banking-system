@@ -1,4 +1,8 @@
 .idea
 .vscode
 /auth/bin/
+/notifier/bin/
+/auth/coverage.out
+/notifier/coverage.out
 *.drawio.bkp
+*.drawio.dtmp

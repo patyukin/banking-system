@@ -4,7 +4,11 @@ import (
 	"context"
 	"log"
 
+	"github.com/patyukin/banking-system/auth/internal/api/auth"
 	"github.com/patyukin/banking-system/auth/internal/api/user"
+	"github.com/patyukin/banking-system/auth/internal/queue/kafka"
+	authRepository "github.com/patyukin/banking-system/auth/internal/repository/auth"
+
 	"github.com/patyukin/banking-system/auth/internal/client/db"
 	"github.com/patyukin/banking-system/auth/internal/client/db/pg"
 	"github.com/patyukin/banking-system/auth/internal/client/db/transaction"
@@ -12,22 +16,30 @@ import (
 	"github.com/patyukin/banking-system/auth/internal/config"
 	"github.com/patyukin/banking-system/auth/internal/config/env"
 	"github.com/patyukin/banking-system/auth/internal/repository"
-	noteRepository "github.com/patyukin/banking-system/auth/internal/repository/user"
+	userRepository "github.com/patyukin/banking-system/auth/internal/repository/user"
 	"github.com/patyukin/banking-system/auth/internal/service"
-	noteService "github.com/patyukin/banking-system/auth/internal/service/user"
+	authService "github.com/patyukin/banking-system/auth/internal/service/auth"
+	userService "github.com/patyukin/banking-system/auth/internal/service/user"
 )
 
 type serviceProvider struct {
-	pgConfig   config.PGConfig
-	grpcConfig config.GRPCConfig
+	pgConfig      config.PGConfig
+	grpcConfig    config.GRPCConfig
+	httpConfig    config.HTTPConfig
+	swaggerConfig config.SwaggerConfig
 
-	dbClient       db.Client
-	txManager      db.TxManager
-	noteRepository repository.UserRepository
+	dbClient  db.Client
+	txManager db.TxManager
 
-	noteService service.UserService
+	userRepository repository.UserRepository
+	authRepository repository.AuthRepository
 
-	noteImpl *user.Implementation
+	userService service.UserService
+	authService service.AuthService
+
+	userImpl *user.Implementation
+	authImpl *auth.Implementation
+	producer *kafka.KafkaProducer
 }
 
 func newServiceProvider() *serviceProvider {
@@ -60,6 +72,32 @@ func (s *serviceProvider) GRPCConfig() config.GRPCConfig {
 	return s.grpcConfig
 }
 
+func (s *serviceProvider) HTTPConfig() config.HTTPConfig {
+	if s.httpConfig == nil {
+		cfg, err := env.NewHTTPConfig()
+		if err != nil {
+			log.Fatalf("failed to get http config: %s", err.Error())
+		}
+
+		s.httpConfig = cfg
+	}
+
+	return s.httpConfig
+}
+
+func (s *serviceProvider) SwaggerConfig() config.SwaggerConfig {
+	if s.swaggerConfig == nil {
+		cfg, err := env.NewSwaggerConfig()
+		if err != nil {
+			log.Fatalf("failed to get swagger config: %s", err.Error())
+		}
+
+		s.swaggerConfig = cfg
+	}
+
+	return s.swaggerConfig
+}
+
 func (s *serviceProvider) DBClient(ctx context.Context) db.Client {
 	if s.dbClient == nil {
 		cl, err := pg.New(ctx, s.PGConfig().DSN())
@@ -87,29 +125,62 @@ func (s *serviceProvider) TxManager(ctx context.Context) db.TxManager {
 	return s.txManager
 }
 
-func (s *serviceProvider) NoteRepository(ctx context.Context) repository.UserRepository {
-	if s.noteRepository == nil {
-		s.noteRepository = noteRepository.NewRepository(s.DBClient(ctx))
+func (s *serviceProvider) UserRepository(ctx context.Context) repository.UserRepository {
+	if s.userRepository == nil {
+		s.userRepository = userRepository.NewRepository(s.DBClient(ctx))
 	}
 
-	return s.noteRepository
+	return s.userRepository
 }
 
-func (s *serviceProvider) NoteService(ctx context.Context) service.UserService {
-	if s.noteService == nil {
-		s.noteService = noteService.NewService(
-			s.NoteRepository(ctx),
+func (s *serviceProvider) UserService(ctx context.Context) service.UserService {
+	if s.userService == nil {
+		s.userService = userService.NewService(
+			s.UserRepository(ctx),
 			s.TxManager(ctx),
 		)
 	}
 
-	return s.noteService
+	return s.userService
 }
 
 func (s *serviceProvider) UserImpl(ctx context.Context) *user.Implementation {
-	if s.noteImpl == nil {
-		s.noteImpl = user.NewImplementation(s.NoteService(ctx))
+	if s.userImpl == nil {
+		s.userImpl = user.NewImplementation(s.UserService(ctx))
 	}
 
-	return s.noteImpl
+	return s.userImpl
+}
+
+func (s *serviceProvider) AuthRepository(ctx context.Context) repository.AuthRepository {
+	if s.authRepository == nil {
+		s.authRepository = authRepository.NewRepository(s.DBClient(ctx))
+	}
+
+	return s.authRepository
+}
+
+func (s *serviceProvider) AuthService(ctx context.Context) service.AuthService {
+	if s.authService == nil {
+		s.authService = authService.NewService(
+			s.AuthRepository(ctx),
+			s.UserRepository(ctx),
+			s.TxManager(ctx),
+			s.Producer(ctx),
+		)
+	}
+
+	return s.authService
+}
+
+func (s *serviceProvider) Producer(_ context.Context) *kafka.KafkaProducer {
+	return s.producer
+}
+
+func (s *serviceProvider) AuthImpl(ctx context.Context) *auth.Implementation {
+	if s.authImpl == nil {
+		s.authImpl = auth.NewImplementation(s.AuthService(ctx), s.UserService(ctx))
+	}
+
+	return s.authImpl
 }

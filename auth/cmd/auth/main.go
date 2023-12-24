@@ -8,7 +8,8 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	a, err := app.NewApp(ctx)
 	if err != nil {

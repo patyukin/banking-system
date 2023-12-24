@@ -1,20 +1,31 @@
 package converter
 
 import (
+	"database/sql"
 	"github.com/patyukin/banking-system/auth/internal/model"
 	modelRepo "github.com/patyukin/banking-system/auth/internal/repository/user/model"
+	"time"
 )
 
-func ToNoteFromRepo(note *modelRepo.User) *model.User {
+func ToUserFromRepo(user *modelRepo.User) *model.User {
+	var nullTime sql.NullTime
+	var t time.Time
+
+	if nullTime.Valid {
+		t = nullTime.Time
+	} else {
+		t = time.Time{}
+	}
+
 	return &model.User{
-		UUID:      note.UUID,
-		Info:      ToNoteInfoFromRepo(note.Info),
-		CreatedAt: note.CreatedAt,
-		UpdatedAt: note.UpdatedAt,
+		ID:        user.ID,
+		Info:      ToUserInfoFromRepo(user.Info),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: t,
 	}
 }
 
-func ToNoteInfoFromRepo(info modelRepo.UserInfo) model.UserInfo {
+func ToUserInfoFromRepo(info modelRepo.UserInfo) model.UserInfo {
 	return model.UserInfo{
 		Name:  info.Name,
 		Email: info.Email,

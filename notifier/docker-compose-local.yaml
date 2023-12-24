@@ -1,0 +1,36 @@
+version: "3.8"
+
+volumes:
+  pg_volume:
+  pg_test_volume:
+
+services:
+  pg:
+    image: postgres:15-alpine3.18
+    restart: always
+    environment:
+      - "POSTGRES_DB=${PG_DB_NAME}"
+      - "POSTGRES_USER=${PG_USER}"
+      - "POSTGRES_PASSWORD=${PG_PASSWORD}"
+    ports:
+      - "${PG_PORT}:5432"
+    volumes:
+      - pg_volume:/var/lib/postgresql/data
+
+  pg-test:
+    image: postgres:15-alpine3.18
+    restart: always
+    environment:
+      - "POSTGRES_DB=${PG_DB_NAME}"
+      - "POSTGRES_USER=${PG_USER}"
+      - "POSTGRES_PASSWORD=${PG_PASSWORD}"
+    ports:
+      - "${PG_PORT_TEST}:5432"
+    volumes:
+      - pg_test_volume:/var/lib/postgresql/data
+
+  migrator:
+    build:
+      context: .
+      dockerfile: migration.Dockerfile
+    restart: on-failure

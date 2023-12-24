@@ -5,15 +5,72 @@ package user_v1;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
+import "validate/validate.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 option go_package = "github.com/patyukin/banking-system/auth/pkg/user_v1;user_v1";
 
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+	info: {
+		title: "User API"
+		version: "1.0.0"
+		contact: {
+			name: "Pavel Tyukin"
+			email: "me@patyukin.ru"
+		};
+	};
+
+	host: "localhost:8080",
+	schemes: HTTP,
+	schemes: HTTPS,
+	consumes: "application/json",
+	produces: "application/json",
+};
+
 service UserV1 {
-	rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse);
-	rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-	rpc Get(GetRequest) returns (GetResponse);
-	rpc Update(UpdateRequest) returns (google.protobuf.Empty);
-	rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
+	// Create Role
+	rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse) {
+		option (google.api.http) = {
+			post: "/api/v1/roles"
+			body: "*"
+		};
+	}
+
+	// Create User
+	rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+		option (google.api.http) = {
+			post: "/api/v1/users"
+			body: "*"
+		};
+	}
+
+	// Get One User
+	rpc Get(GetRequest) returns (GetResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/users/{id}"
+		};
+	}
+
+	// Update User
+	rpc Update(UpdateRequest) returns (google.protobuf.Empty) {
+		option (google.api.http) = {
+			patch: "/api/v1/users/{id}"
+			body: "*"
+		};
+	}
+
+	// Delete User
+	rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
+		option (google.api.http) = {
+			delete: "/api/v1/users/{id}"
+		};
+	}
+}
+
+message Role {
+	int32 id = 1;
+	string name = 2;
 }
 
 message CreateRoleRequest {
@@ -21,18 +78,18 @@ message CreateRoleRequest {
 }
 
 message CreateRoleResponse {
-	string uuid = 1;
+	int32 id = 1;
 }
 
 message UserInfo {
-	string name = 1;
+	string name = 1 [(validate.rules).string = {min_len: 1, max_len: 50}];
 	string email = 2;
 }
 
 message User {
-	string uuid = 1;
+	int64 id = 1;
 	UserInfo info = 2;
-	repeated string roles_uuid = 3;
+	repeated int32 roles_ids = 3;
 	google.protobuf.Timestamp created_at = 4;
 	google.protobuf.Timestamp updated_at = 5;
 }
@@ -46,16 +103,17 @@ message CreateUserRequest {
 	UserInfo info = 1;
 	string password = 2;
 	string password_confirm = 3;
-	google.protobuf.Timestamp created_at = 4;
-	google.protobuf.Timestamp updated_at = 5;
+	repeated int32 roles_ids = 4;
+	google.protobuf.Timestamp created_at = 5;
+	google.protobuf.Timestamp updated_at = 6;
 }
 
 message CreateUserResponse {
-	string uuid = 1;
+	int64 id = 1;
 }
 
 message GetRequest {
-	string uuid = 1;
+	int64 id = 1;
 }
 
 message GetResponse {
@@ -68,11 +126,11 @@ message ListRequest {
 }
 
 message UpdateRequest {
-	string uuid = 1;
+	int64 id = 1;
 	UpdateUserInfo info = 2;
 }
 
 message DeleteRequest {
-	string uuid = 1;
+	int64 id = 1;
 }
 
